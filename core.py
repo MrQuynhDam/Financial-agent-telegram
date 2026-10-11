@@ -5,6 +5,7 @@ import feedparser
 from bs4 import BeautifulSoup
 from datetime import datetime
 import time
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 CONFIG_FILE = "config.json"
@@ -141,17 +142,46 @@ def generate_llm_summary(config, news_items):
 
     return "Provider không hợp lệ."
 
-def send_telegram_message(token, chat_id, text):
-    """Gửi bản tin sang Telegram"""
+def clean_html_for_telegram(text):
+    """Tự động chuyển đổi các thẻ HTML không hỗ trợ thành văn bản chuẩn Telegram"""
+    if not text:
+        return ""
+    # Chuyển thẻ <li> thành dấu đầu dòng •
+    text = re.sub(r'<li[^>]*>', '• ', text)
+    text = re.sub(r'</li[^>]*>', '\n', text)
+    # Xóa hoàn toàn các thẻ ul, ol, p, div, h1-h6
+    text = re.sub(r'</?(ul|ol|p|div|h[1-6])[^>]*>', '\n', text)
+    text = re.sub(r'<br\s*/?>', '\n', text)
+    # Xóa dòng trống thừa
+    text = re.sub(r'\n\s*\n+', '\n\n', text)
+    return text.strip()
+
+def send_telegram_message(config, message):
+    """Hàm gửi tin nhắn sang Telegram"""
+    token = config.get("telegram_bot_token", "").strip()
+    chat_id = config.get("telegram_chat_id", "").strip()
+    
+    if not token or not chat_id:
+        raise Exception("Chưa cấu hình Telegram Bot Token hoặc Chat ID.")
+        
+    # Làm sạch HTML trước khi gửi sang Telegram
+    clean_message = clean_html_for_telegram(message)
+    
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
-        "text": text,
+        "text": clean_message,
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
-    response = requests.post(url, json=payload, timeout=15)
-    return response.json()
+    
+    res = requests.post(url, json=payload, timeout=30)
+    res_json = res.json()
+    
+    if not res_json.get("ok"):
+        raise Exception(f"Lỗi gửi Telegram: {res_json.get('description')}")
+        
+    return True
 
 def run_agent_job():
     """Hàm thực thi chính - Đã bọc try...except an toàn"""
