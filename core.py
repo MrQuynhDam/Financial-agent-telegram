@@ -68,10 +68,16 @@ def generate_llm_summary(config, news_items):
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
         res = requests.post(url, json=payload, timeout=30)
         res_json = res.json()
+
+        # Kiểm tra nếu Google API trả về phản hồi lỗi
+        if "error" in res_json:
+            error_msg = res_json["error"].get("message", "Lỗi không xác định")
+            raise Exception(f"Lỗi từ Gemini API: {error_msg}")
+
         try:
             return res_json['candidates'][0]['content']['parts'][0]['text']
-        except Exception:
-            raise Exception(f"Lỗi Gemini API: {res_json}")
+        except (KeyError, IndexError):
+            raise Exception(f"Cấu trúc phản hồi không đúng: {res_json}")
 
     elif provider in ["OpenAI", "Groq", "Custom OpenAI-Compatible"]:
         base_url = "https://api.openai.com/v1/chat/completions"
