@@ -5,6 +5,7 @@ import feedparser
 from bs4 import BeautifulSoup
 from datetime import datetime
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 CONFIG_FILE = "config.json"
 
@@ -14,37 +15,52 @@ def load_config():
             return json.load(f)
     return {}
 
+def fetch_single_feed(url, keywords, max_items_per_feed=5):
+    """Hàm xử lý cào 1 trang RSS đơn lẻ"""
+    feed_articles = []
+    try:
+        feed = feedparser.parse(url)
+        for entry in feed.entries[:max_items_per_feed]:
+            link = entry.get("link", "")
+            title = entry.get("title", "")
+            summary_raw = entry.get("summary", entry.get("description", ""))
+            
+            # Làm sạch HTML
+            soup = BeautifulSoup(summary_raw, "html.parser")
+            clean_summary = soup.get_text().strip()
+
+            # Lọc từ khóa
+            combined_text = f"{title} {clean_summary}".lower()
+            if not keywords or any(kw.lower() in combined_text for kw in keywords):
+                feed_articles.append({
+                    "title": title,
+                    "link": link,
+                    "summary": clean_summary[:200] + "..." if len(clean_summary) > 200 else clean_summary
+                })
+    except Exception as e:
+        print(f"Lỗi cào nguồn {url}: {e}")
+    return feed_articles
+
 def fetch_rss_news(rss_urls, keywords, max_items_per_feed=5):
-    """Crawl tin tức từ danh sách RSS và lọc theo từ khóa"""
+    """Cào tin tức ĐA LUỒNG (Song song) từ tất cả URL cùng lúc"""
     articles = []
     seen_links = set()
 
-    for url in rss_urls:
-        try:
-            feed = feedparser.parse(url)
-            for entry in feed.entries[:max_items_per_feed]:
-                link = entry.get("link", "")
-                if link in seen_links:
-                    continue
-                
-                title = entry.get("title", "")
-                summary_raw = entry.get("summary", entry.get("description", ""))
-                
-                # Làm sạch HTML
-                soup = BeautifulSoup(summary_raw, "html.parser")
-                clean_summary = soup.get_text().strip()
-
-                # Lọc từ khóa
-                combined_text = f"{title} {clean_summary}".lower()
-                if not keywords or any(kw.lower() in combined_text for kw in keywords):
-                    articles.append({
-                        "title": title,
-                        "link": link,
-                        "summary": clean_summary[:200] + "..." if len(clean_summary) > 200 else clean_summary
-                    })
-                    seen_links.add(link)
-        except Exception as e:
-            print(f"Lỗi crawl {url}: {e}")
+    # Chạy song song tối đa 10 luồng cùng lúc
+    with ThreadPoolExecutor(max_workers=min(len(rss_urls), 10)) as executor:
+        future_to_url = {
+            executor.submit(fetch_single_feed, url, keywords, max_items_per_feed): url 
+            for url in rss_urls
+        }
+        for future in as_completed(future_to_url):
+            try:
+                data = future.result()
+                for item in data:
+                    if item["link"] not in seen_links:
+                        articles.append(item)
+                        seen_links.add(item["link"])
+            except Exception as e:
+                print(f"Lỗi luồng cào tin: {e}")
 
     return articles
 
