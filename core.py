@@ -157,7 +157,7 @@ def clean_html_for_telegram(text):
     return text.strip()
 
 def send_telegram_message(token, chat_id, message):
-    """Gửi tin nhắn Telegram với 3 tham số truyền vào"""
+    """Gửi tin nhắn Telegram và trả về Dictionary phản hồi từ Telegram API"""
     if not token or not chat_id:
         raise Exception("Chưa cấu hình Telegram Bot Token hoặc Chat ID.")
         
@@ -178,7 +178,7 @@ def send_telegram_message(token, chat_id, message):
     if not res_json.get("ok"):
         raise Exception(f"Lỗi gửi Telegram: {res_json.get('description')}")
         
-    return True
+    return res_json  # Trả về dict chứa key "ok" để run_agent_job() đọc không bị lỗi
 
 def run_agent_job():
     """Hàm thực thi chính - Đã bọc try...except an toàn"""
