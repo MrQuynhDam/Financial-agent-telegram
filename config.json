@@ -1,9 +1,9 @@
 {
-  "telegram_bot_token": "",
-  "telegram_chat_id": "",
+  "telegram_bot_token": "8831179743:AAH1TccyLAz7j_hKpmoptiBr6DAR592uoTY",
+  "telegram_chat_id": "7461280069",
   "llm_provider": "Google Gemini",
-  "llm_api_key": "",
-  "llm_model": "gemini-2.5-flash",
+  "llm_api_key": "AQ.Ab8RN6KZ3S0z_MkpFnqCqlZq93DIUat_zlzaHksreOBFnFsbKQ",
+  "llm_model": "gemini-3.8-flash",
   "rss_urls": [
     "https://cafef.vn/thi-truong-chung-khoan.rss",
     "https://vietstock.vn/rss/tai-chinh.rss",
