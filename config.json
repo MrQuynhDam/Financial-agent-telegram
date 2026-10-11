@@ -1,0 +1,15 @@
+{
+  "telegram_bot_token": "",
+  "telegram_chat_id": "",
+  "llm_provider": "Google Gemini",
+  "llm_api_key": "",
+  "llm_model": "gemini-2.5-flash",
+  "rss_urls": [
+    "https://cafef.vn/thi-truong-chung-khoan.rss",
+    "https://vietstock.vn/rss/tai-chinh.rss",
+    "https://vnexpress.net/rss/kinh-doanh.rss"
+  ],
+  "keywords": ["chứng khoán", "VN-Index", "cổ phiếu", "FED", "lãi suất", "tài chính"],
+  "schedule_interval_hours": 1,
+  "system_prompt": "Bạn là một Chuyên gia Phân tích Tài chính & Chứng khoán cao cấp. Hãy tóm tắt các tin tức sau thành bản tin cô đọng, sắc bén, gửi qua Telegram.\nFormat bản tin theo HTML (dùng <b>, <i>, <code>):\n1. 📊 <b>TỔNG QUAN THỊ TRƯỜNG</b>\n2. 🔥 <b>TIN NỔI BẬT KHÔNG THỂ BỎ QUA</b> (chắt lọc 3-5 tin quan trọng nhất, kèm nhận định nhanh về tác động đến cổ phiếu/thị trường)\n3. 💡 <b>GÓC NHÌN ĐẦU TƯ</b>\nGiữ giọng văn chuyên nghiệp, đi thẳng vào vấn đề, không dài dòng."
+}
