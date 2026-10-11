@@ -4,6 +4,7 @@ import requests
 import feedparser
 from bs4 import BeautifulSoup
 from datetime import datetime
+import time
 
 CONFIG_FILE = "config.json"
 
@@ -48,13 +49,11 @@ def fetch_rss_news(rss_urls, keywords, max_items_per_feed=5):
     return articles
 
 def generate_llm_summary(config, news_items):
-    """Gọi LLM API để tóm tắt bản tin"""
+    """Gọi LLM API để tóm tắt bản tin (Có tự động retry khi gặp lỗi 503)"""
     if not news_items:
         return None
 
-    # Lấy tối đa 10 tin tức mới nhất để tối ưu tốc độ xử lý
     top_news = news_items[:10]
-
     news_text = "\n\n".join([
         f"• Tiêu đề: {item['title']}\n  Tóm tắt: {item['summary']}\n  Nguồn: {item['link']}"
         for item in top_news
@@ -64,9 +63,8 @@ def generate_llm_summary(config, news_items):
 
     provider = config.get("llm_provider", "Google Gemini")
     api_key = config.get("llm_api_key", "").strip()
-    model = config.get("llm_model", "gemini-1.5-flash").strip()
+    model = config.get("llm_model", "gemini-3.8-flash").strip()
 
-    # Xử lý chuẩn hóa tên model
     if model.startswith("models/"):
         model = model.replace("models/", "")
 
@@ -77,35 +75,46 @@ def generate_llm_summary(config, news_items):
             "x-goog-api-key": api_key
         }
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        
-        res = requests.post(url, headers=headers, json=payload, timeout=90)
-        res_json = res.json()
 
-        # Kiểm tra nếu Google API trả về lỗi
-        if "error" in res_json:
-            err_details = res_json["error"]
-            msg = err_details.get("message", "Lỗi không xác định")
-            code = err_details.get("code", "")
-            status = err_details.get("status", "")
-            raise Exception(f"Gemini API Error [{code} {status}]: {msg}")
+        # Cơ chế tự động thử lại tối đa 3 lần khi gặp 503
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                res = requests.post(url, headers=headers, json=payload, timeout=90)
+                res_json = res.json()
 
-        try:
-            return res_json['candidates'][0]['content']['parts'][0]['text']
-        except (KeyError, IndexError):
-            raise Exception(f"Phản hồi Gemini không có nội dung text: {res_json}")
+                if "error" in res_json:
+                    err_details = res_json["error"]
+                    code = err_details.get("code", 0)
+                    msg = err_details.get("message", "Lỗi không xác định")
+
+                    # Nếu dính lỗi 503 Quá tải, tạm dừng vài giây rồi thử lại
+                    if code == 503 and attempt < max_retries - 1:
+                        time.sleep(3 * (attempt + 1))  # Chờ 3s, 6s...
+                        continue
+
+                    raise Exception(f"Gemini API Error [{code}]: {msg}")
+
+                return res_json['candidates'][0]['content']['parts'][0]['text']
+
+            except requests.exceptions.RequestException as e:
+                if attempt < max_retries - 1:
+                    time.sleep(3)
+                    continue
+                raise Exception(f"Lỗi kết nối Gemini API: {str(e)}")
 
     elif provider in ["OpenAI", "Groq"]:
         base_url = "https://api.openai.com/v1/chat/completions"
         if provider == "Groq":
             base_url = "https://api.groq.com/openai/v1/chat/completions"
-        
+
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         payload = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.3
         }
-        res = requests.post(base_url, headers=headers, json=payload, timeout=30)
+        res = requests.post(base_url, headers=headers, json=payload, timeout=90)
         res_json = res.json()
         if "error" in res_json:
             raise Exception(f"{provider} Error: {res_json['error'].get('message')}")
