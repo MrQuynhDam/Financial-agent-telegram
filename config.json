@@ -1,9 +1,9 @@
 {
   "telegram_bot_token": "8894041201:AAGMjp6jo-5lk2TMWXQa5sUi5aeVK392iq0",
   "telegram_chat_id": "7461280069",
-  "llm_provider": "Google Gemini",
-  "llm_api_key": "YOUR_GEMINI_API_KEY",
-  "llm_model": "gemini-3.8-flash",
+  "llm_provider": "Groq",
+  "llm_api_key": "",
+  "llm_model": "llama-3.1-70b-versatile",
   "rss_urls": [
     "https://cafef.vn/thi-truong-chung-khoan.rss",
     "https://cafef.vn/tai-chinh-the-gioi.rss",
