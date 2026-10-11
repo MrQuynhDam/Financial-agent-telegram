@@ -52,66 +52,15 @@ def generate_llm_summary(config, news_items):
     if not news_items:
         return None
 
+    # Lấy tối đa 10 tin tức mới nhất để tối ưu tốc độ xử lý
+    top_news = news_items[:10]
+
     news_text = "\n\n".join([
         f"• Tiêu đề: {item['title']}\n  Tóm tắt: {item['summary']}\n  Nguồn: {item['link']}"
-        for item in news_items
+        for item in top_news
     ])
-
-    prompt = f"{config['system_prompt']}\n\nDANH SÁCH TIN TỨC MỚI NHẤT:\n{news_text}"
-
-    provider = config.get("llm_provider", "Google Gemini")
-    api_key = config.get("llm_api_key", "").strip()
-    model = config.get("llm_model", "gemini-1.5-flash").strip()
-
-    # Xử lý chuẩn hóa tên model
-    if model.startswith("models/"):
-        model = model.replace("models/", "")
-
-    if provider == "Google Gemini":
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        headers = {
-            "Content-Type": "application/json",
-            "x-goog-api-key": api_key
-        }
-        payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        
-        res = requests.post(url, headers=headers, json=payload, timeout=30)
-        res_json = res.json()
-
-        # Kiểm tra nếu Google API trả về lỗi
-        if "error" in res_json:
-            err_details = res_json["error"]
-            msg = err_details.get("message", "Lỗi không xác định")
-            code = err_details.get("code", "")
-            status = err_details.get("status", "")
-            raise Exception(f"Gemini API Error [{code} {status}]: {msg}")
-
-        try:
-            return res_json['candidates'][0]['content']['parts'][0]['text']
-        except (KeyError, IndexError):
-            raise Exception(f"Phản hồi Gemini không có nội dung text: {res_json}")
-
-    elif provider in ["OpenAI", "Groq"]:
-        base_url = "https://api.openai.com/v1/chat/completions"
-        if provider == "Groq":
-            base_url = "https://api.groq.com/openai/v1/chat/completions"
-        
-        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.3
-        }
-        res = requests.post(base_url, headers=headers, json=payload, timeout=30)
-        res_json = res.json()
-        if "error" in res_json:
-            raise Exception(f"{provider} Error: {res_json['error'].get('message')}")
-        try:
-            return res_json['choices'][0]['message']['content']
-        except Exception:
-            raise Exception(f"Phản hồi {provider} không đúng định dạng.")
-
-    return "Provider không hợp lệ."
+    
+    # ... (Giữ nguyên các đoạn code bên dưới)
 
 def send_telegram_message(token, chat_id, text):
     """Gửi bản tin sang Telegram"""
