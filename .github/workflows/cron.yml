@@ -1,0 +1,19 @@
+name: Hourly Financial News Agent Trigger
+
+on:
+  schedule:
+    - cron: '0 * * * *' # Chạy vào đầu mỗi giờ
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Financial Agent
+        run: python -c "from core import run_agent_job; run_agent_job()"
