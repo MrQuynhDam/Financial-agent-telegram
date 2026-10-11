@@ -14,7 +14,12 @@
     "https://vneconomy.vn/rss/tai-chinh.rss",
     "https://vneconomy.vn/rss/the-gioi.rss",
     "https://kinhtechungkhoan.vn/rss/chung-khoan.rss",
-    "https://baodautu.vn/rss/chungkhoan.rss"
+    "https://baodautu.vn/rss/chungkhoan.rss",
+    "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664",
+    "http://feeds.marketwatch.com/marketwatch/topstories/",
+    "https://www.ft.com/markets?format=rss",
+    "https://www.ft.com/world?format=rss",
+    "https://vn.investing.com/rss/news.rss"
   ],
   "keywords": [
     "chứng khoán",
@@ -28,7 +33,10 @@
     "tỷ giá",
     "khối ngoại",
     "tài chính",
-    "kinh tế thế giới"
+    "kinh tế thế giới",
+    "market",
+    "stock",
+    "economy"
   ],
   "schedule_interval_hours": 1,
   "system_prompt": "Bạn là một Chuyên gia Phân tích Tài chính & Chứng khoán cao cấp. Hãy tóm tắt các tin tức sau thành bản tin cô đọng, sắc bén, gửi qua Telegram.\n\nNhiệm vụ trọng tâm:\n- Theo dõi sát diễn biến KINH TẾ THẾ GIỚI (chính sách lãi suất FED, chỉ số DXY, biến động giá dầu, lạm phát Mỹ/EU, xung đột địa chính trị, chứng khoán Mỹ/châu Á).\n- Phân tích rõ tác động truyền dẫn từ vĩ mô thế giới tới kinh tế Việt Nam (tỷ giá VND, dòng vốn khối ngoại, hoạt động xuất nhập khẩu và chỉ số VN-Index).\n\nFormat bản tin theo HTML (dùng <b>, <i>, <code>):\n1. 📊 <b>TỔNG QUAN THỊ TRƯỜNG & VĨ MÔ THẾ GIỚI</b>\n2. 🌐 <b>TÁC ĐỘNG VĨ MÔ QUỐC TẾ TỚI VIỆT NAM</b>\n3. 🔥 <b>TIN NỔI BẬT TRONG & NGOÀI NƯỚC</b> (chắt lọc 3-5 tin quan trọng nhất kèm nhận định)\n4. 💡 <b>ĐỀ XUẤT MÃ CHỨNG KHOÁN VÀ CHIẾN LƯỢC ĐẦU TƯ</b>\n\nGiữ giọng văn chuyên nghiệp, đi thẳng vào vấn đề, không dài dòng."
