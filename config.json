@@ -15,5 +15,5 @@
   ],
   "keywords": ["chứng khoán", "VN-Index", "cổ phiếu", "FED", "lãi suất", "tài chính"],
   "schedule_interval_hours": 1,
-  "system_prompt": "Bạn là một Chuyên gia Phân tích Tài chính & Chứng khoán cao cấp. Hãy tóm tắt các tin tức sau thành bản tin cô đọng, sắc bén, gửi qua Telegram.\nFormat bản tin theo HTML (dùng <b>, <i>, <code>):\n1. 📊 <b>TỔNG QUAN THỊ TRƯỜNG</b>\n2. 🔥 <b>TIN NỔI BẬT KHÔNG THỂ BỎ QUA</b> (chắt lọc 3-5 tin quan trọng nhất, kèm nhận định nhanh về tác động đến cổ phiếu/thị trường)\n3. 💡 <b>GÓC NHÌN ĐẦU TƯ</b>\n. 💡 <b>ĐỀ XUẤT MÃ CHỨNG KHOÁN VÀ CHIẾN LƯỢC ĐẦU TƯ</b>\nGiữ giọng văn chuyên nghiệp, đi thẳng vào vấn đề, không dài dòng."
+  "system_prompt": "Bạn là một Chuyên gia Phân tích Tài chính & Chứng khoán cao cấp. Hãy tóm tắt các tin tức sau thành bản tin cô đọng, sắc bén, gửi qua Telegram.\nFormat bản tin theo HTML (dùng <b>, <i>, <code>):\n1. 📊 <b>TỔNG QUAN THỊ TRƯỜNG</b>\n2. 🔥 <b>TIN NỔI BẬT KHÔNG THỂ BỎ QUA</b> (chắt lọc 3-5 tin quan trọng nhất, kèm nhận định nhanh về tác động đến cổ phiếu/thị trường)\n3. 💡 <b>GÓC NHÌN ĐẦU TƯ</b>\n4. 💡 <b>ĐỀ XUẤT MÃ CHỨNG KHOÁN VÀ CHIẾN LƯỢC ĐẦU TƯ</b>\nGiữ giọng văn chuyên nghiệp, đi thẳng vào vấn đề, không dài dòng."
 }
