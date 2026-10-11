@@ -144,41 +144,54 @@ def generate_llm_summary(config, news_items):
     return "Provider không hợp lệ."
 
 def clean_html_for_telegram(text):
-    """Xóa bỏ các thẻ HTML không được Telegram hỗ trợ (ul, li, p, div...)"""
+    """Làm sạch HTML chuẩn quy định của Telegram"""
     if not text:
         return ""
     # Chuyển <li> thành dấu •
     text = re.sub(r'<li[^>]*>', '• ', text)
     text = re.sub(r'</li[^>]*>', '\n', text)
-    # Bỏ các thẻ ul, ol, p, div, h1-h6
-    text = re.sub(r'</?(ul|ol|p|div|h[1-6])[^>]*>', '\n', text)
-    text = re.sub(r'<br\s*/?>', '\n', text)
+    # Loại bỏ các thẻ HTML không hỗ trợ, chỉ giữ lại b, i, code, a, s, u
+    text = re.sub(r'</?(?!b|i|code|a|s|u|/b|/i|/code|/a|/s|/u)[^>]+>', '', text)
     text = re.sub(r'\n\s*\n+', '\n\n', text)
     return text.strip()
 
 def send_telegram_message(token, chat_id, message):
-    """Gửi tin nhắn Telegram và trả về Dictionary phản hồi từ Telegram API"""
+    """Gửi tin nhắn sang Telegram với cơ chế Fallback và Auto-Split thông minh"""
     if not token or not chat_id:
         raise Exception("Chưa cấu hình Telegram Bot Token hoặc Chat ID.")
         
-    # Làm sạch HTML lỗi trước khi gửi
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
     clean_msg = clean_html_for_telegram(message)
     
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": clean_msg,
-        "parse_mode": "HTML",
-        "disable_web_page_preview": True
-    }
+    # Cắt tin nhắn nếu dài hơn 4000 ký tự (Giới hạn Telegram là 4096)
+    MAX_LEN = 4000
+    chunks = [clean_msg[i:i+MAX_LEN] for i in range(0, len(clean_msg), MAX_LEN)]
     
-    res = requests.post(url, json=payload, timeout=30)
-    res_json = res.json()
+    last_res = {"ok": True}
     
-    if not res_json.get("ok"):
-        raise Exception(f"Lỗi gửi Telegram: {res_json.get('description')}")
+    for chunk in chunks:
+        payload = {
+            "chat_id": chat_id,
+            "text": chunk,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True
+        }
         
-    return res_json  # Trả về dict chứa key "ok" để run_agent_job() đọc không bị lỗi
+        res = requests.post(url, json=payload, timeout=30).json()
+        
+        # Nếu lỗi Parse HTML (do dính dấu <, > hoặc chưa đóng thẻ), Fallback gửi dưới dạng Plain Text
+        if not res.get("ok") and "parse" in res.get("description", "").lower():
+            plain_text = re.sub(r'<[^>]+>', '', chunk) # Xóa hết thẻ HTML lỗi
+            payload["text"] = plain_text
+            payload.pop("parse_mode", None)
+            res = requests.post(url, json=payload, timeout=30).json()
+            
+        if not res.get("ok"):
+            raise Exception(f"Lỗi gửi Telegram: {res.get('description')}")
+            
+        last_res = res
+        
+    return last_res
 
 def run_agent_job():
     """Hàm thực thi chính - Đã bọc try...except an toàn"""
