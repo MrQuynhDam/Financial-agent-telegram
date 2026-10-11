@@ -7,7 +7,11 @@
   "rss_urls": [
     "https://cafef.vn/thi-truong-chung-khoan.rss",
     "https://vietstock.vn/rss/tai-chinh.rss",
-    "https://vnexpress.net/rss/kinh-doanh.rss"
+    "https://vnexpress.net/rss/kinh-doanh.rss",
+    "https://www.tinnhanhchungkhoan.vn/rss/trang-chu.rss",
+    "https://vneconomy.vn/rss/tai-chinh.rss",
+    "https://kinhtechungkhoan.vn/rss/chung-khoan.rss",
+    "https://baodautu.vn/rss/chungkhoan.rss"
   ],
   "keywords": ["chứng khoán", "VN-Index", "cổ phiếu", "FED", "lãi suất", "tài chính"],
   "schedule_interval_hours": 1,
