@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import time
 import re
+import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 CONFIG_FILE = "config.json"
@@ -143,34 +144,30 @@ def generate_llm_summary(config, news_items):
     return "Provider không hợp lệ."
 
 def clean_html_for_telegram(text):
-    """Tự động chuyển đổi các thẻ HTML không hỗ trợ thành văn bản chuẩn Telegram"""
+    """Xóa bỏ các thẻ HTML không được Telegram hỗ trợ (ul, li, p, div...)"""
     if not text:
         return ""
-    # Chuyển thẻ <li> thành dấu đầu dòng •
+    # Chuyển <li> thành dấu •
     text = re.sub(r'<li[^>]*>', '• ', text)
     text = re.sub(r'</li[^>]*>', '\n', text)
-    # Xóa hoàn toàn các thẻ ul, ol, p, div, h1-h6
+    # Bỏ các thẻ ul, ol, p, div, h1-h6
     text = re.sub(r'</?(ul|ol|p|div|h[1-6])[^>]*>', '\n', text)
     text = re.sub(r'<br\s*/?>', '\n', text)
-    # Xóa dòng trống thừa
     text = re.sub(r'\n\s*\n+', '\n\n', text)
     return text.strip()
 
-def send_telegram_message(config, message):
-    """Hàm gửi tin nhắn sang Telegram"""
-    token = config.get("telegram_bot_token", "").strip()
-    chat_id = config.get("telegram_chat_id", "").strip()
-    
+def send_telegram_message(token, chat_id, message):
+    """Gửi tin nhắn Telegram với 3 tham số truyền vào"""
     if not token or not chat_id:
         raise Exception("Chưa cấu hình Telegram Bot Token hoặc Chat ID.")
         
-    # Làm sạch HTML trước khi gửi sang Telegram
-    clean_message = clean_html_for_telegram(message)
+    # Làm sạch HTML lỗi trước khi gửi
+    clean_msg = clean_html_for_telegram(message)
     
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
-        "text": clean_message,
+        "text": clean_msg,
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
