@@ -3,7 +3,7 @@ import os
 import requests
 import feedparser
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from datetime import datetime
 
 CONFIG_FILE = "config.json"
 
@@ -29,11 +29,11 @@ def fetch_rss_news(rss_urls, keywords, max_items_per_feed=5):
                 title = entry.get("title", "")
                 summary_raw = entry.get("summary", entry.get("description", ""))
                 
-                # Làm sạch HTML trong summary
+                # Làm sạch HTML
                 soup = BeautifulSoup(summary_raw, "html.parser")
                 clean_summary = soup.get_text().strip()
 
-                # Kiểm tra từ khóa
+                # Lọc từ khóa
                 combined_text = f"{title} {clean_summary}".lower()
                 if not keywords or any(kw.lower() in combined_text for kw in keywords):
                     articles.append({
@@ -43,12 +43,12 @@ def fetch_rss_news(rss_urls, keywords, max_items_per_feed=5):
                     })
                     seen_links.add(link)
         except Exception as e:
-            print(f"Lỗi khi cào dữ liệu từ {url}: {e}")
+            print(f"Lỗi crawl {url}: {e}")
 
     return articles
 
 def generate_llm_summary(config, news_items):
-    """Gọi LLM API (Gemini hoặc OpenAI) để tóm tắt"""
+    """Gọi LLM API để tóm tắt bản tin"""
     if not news_items:
         return None
 
@@ -60,26 +60,38 @@ def generate_llm_summary(config, news_items):
     prompt = f"{config['system_prompt']}\n\nDANH SÁCH TIN TỨC MỚI NHẤT:\n{news_text}"
 
     provider = config.get("llm_provider", "Google Gemini")
-    api_key = config.get("llm_api_key", "")
-    model = config.get("llm_model", "gemini-2.5-flash")
+    api_key = config.get("llm_api_key", "").strip()
+    model = config.get("llm_model", "gemini-1.5-flash").strip()
+
+    # Xử lý chuẩn hóa tên model
+    if model.startswith("models/"):
+        model = model.replace("models/", "")
 
     if provider == "Google Gemini":
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": api_key
+        }
         payload = {"contents": [{"parts": [{"text": prompt}]}]}
-        res = requests.post(url, json=payload, timeout=30)
+        
+        res = requests.post(url, headers=headers, json=payload, timeout=30)
         res_json = res.json()
 
-        # Kiểm tra nếu Google API trả về phản hồi lỗi
+        # Kiểm tra nếu Google API trả về lỗi
         if "error" in res_json:
-            error_msg = res_json["error"].get("message", "Lỗi không xác định")
-            raise Exception(f"Lỗi từ Gemini API: {error_msg}")
+            err_details = res_json["error"]
+            msg = err_details.get("message", "Lỗi không xác định")
+            code = err_details.get("code", "")
+            status = err_details.get("status", "")
+            raise Exception(f"Gemini API Error [{code} {status}]: {msg}")
 
         try:
             return res_json['candidates'][0]['content']['parts'][0]['text']
         except (KeyError, IndexError):
-            raise Exception(f"Cấu trúc phản hồi không đúng: {res_json}")
+            raise Exception(f"Phản hồi Gemini không có nội dung text: {res_json}")
 
-    elif provider in ["OpenAI", "Groq", "Custom OpenAI-Compatible"]:
+    elif provider in ["OpenAI", "Groq"]:
         base_url = "https://api.openai.com/v1/chat/completions"
         if provider == "Groq":
             base_url = "https://api.groq.com/openai/v1/chat/completions"
@@ -92,15 +104,17 @@ def generate_llm_summary(config, news_items):
         }
         res = requests.post(base_url, headers=headers, json=payload, timeout=30)
         res_json = res.json()
+        if "error" in res_json:
+            raise Exception(f"{provider} Error: {res_json['error'].get('message')}")
         try:
             return res_json['choices'][0]['message']['content']
         except Exception:
-            raise Exception(f"Lỗi OpenAI API: {res_json}")
+            raise Exception(f"Phản hồi {provider} không đúng định dạng.")
 
-    return "Cấu hình AI Provider không hợp lệ."
+    return "Provider không hợp lệ."
 
 def send_telegram_message(token, chat_id, text):
-    """Gửi bản tin đã tổng hợp qua Telegram Bot API"""
+    """Gửi bản tin sang Telegram"""
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
         "chat_id": chat_id,
@@ -112,24 +126,30 @@ def send_telegram_message(token, chat_id, text):
     return response.json()
 
 def run_agent_job():
-    """Hàm chạy quy trình tổng hợp & gửi tin"""
+    """Hàm thực thi chính - Đã bọc try...except an toàn"""
     config = load_config()
-    print(f"[{datetime.now()}] Bắt đầu quy trình chạy Agent...")
+    print(f"[{datetime.now()}] Đang chạy Agent...")
     
     if not config.get("telegram_bot_token") or not config.get("telegram_chat_id"):
-        return False, "Thiếu Telegram Bot Token hoặc Chat ID!"
+        return False, "⚠️ Thiếu Telegram Bot Token hoặc Chat ID! Vui lòng cấu hình trong Tab API."
+
+    if not config.get("llm_api_key"):
+        return False, "⚠️ Thiếu LLM API Key! Vui lòng điền API Key trong Tab API."
 
     # 1. Crawl tin tức
     news = fetch_rss_news(config.get("rss_urls", []), config.get("keywords", []))
     if not news:
-        return False, "Không phát hiện tin tức mới đáp ứng bộ lọc từ khóa."
+        return False, "ℹ️ Không tìm thấy tin tức nào khớp với bộ lọc từ khóa hiện tại."
 
-    # 2. Tổng hợp bằng AI
-    summary = generate_llm_summary(config, news)
-    
-    # 3. Gửi Telegram
+    # 2. Gọi AI tóm tắt (Bắt lỗi an toàn)
+    try:
+        summary = generate_llm_summary(config, news)
+    except Exception as e:
+        return False, f"❌ Lỗi xử lý AI: {str(e)}"
+
+    # 3. Gửi sang Telegram
     res = send_telegram_message(config["telegram_bot_token"], config["telegram_chat_id"], summary)
     if res.get("ok"):
-        return True, f"Đã gửi thành công {len(news)} tin tức lên Telegram!"
+        return True, f"🎉 Đã tổng hợp thành công {len(news)} tin tức và gửi qua Telegram!"
     else:
-        return False, f"Lỗi Telegram: {res.get('description')}"
+        return False, f"❌ Lỗi gửi Telegram: {res.get('description', 'Không xác định')}"
