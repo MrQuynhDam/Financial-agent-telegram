@@ -2,7 +2,8 @@ name: Hourly Financial News Agent Trigger
 
 on:
   schedule:
-    - cron: '0 * * * *' # Chạy vào đầu mỗi giờ
+    - cron: '0 * * * *'
+  workflow_dispatch:
 
 jobs:
   run-agent:
@@ -16,4 +17,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Run Financial Agent
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}          
         run: python -c "from core import run_agent_job; run_agent_job()"
