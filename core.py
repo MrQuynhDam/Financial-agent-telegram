@@ -11,11 +11,18 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 CONFIG_FILE = "config.json"
 
+import os
+
 def load_config():
-    if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
+    # Đọc config.json cơ bản
+    config = {}
+    if os.path.exists("config.json"):
+        with open("config.json", "r", encoding="utf-8") as f:
+            config = json.load(f)
+            
+    # Ưu tiên ghi đè bằng Biến môi trường / Secrets nếu có
+    config["llm_api_key"] = os.getenv("GROQ_API_KEY") or config.get("llm_api_key", "")    
+    return config
 
 def fetch_single_feed(url, keywords, max_items_per_feed=5):
     """Hàm xử lý cào 1 trang RSS đơn lẻ"""
